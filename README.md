@@ -1,5 +1,25 @@
 # Raspberry Pi 3 legacy program backup
 
+## New Pi 4-style display for Pi 3
+
+The root of this project now contains a Python 3 OLED program with the same
+two-line, large-text, rotating pages as the Pi 4 project:
+
+- time and date
+- CPU temperature and fan mode
+- battery percentage and discharge duration (or `CHARGING`)
+- IP address
+
+Install it on the Pi 3 from this directory with:
+
+```sh
+sudo sh install-display.sh
+```
+
+The installer disables only the old `stats.py` OLED startup line. It leaves
+the existing Pi 3 fan program unchanged. The original programs below remain
+in this repository as a backup.
+
 [中文说明](#中文说明)
 
 This directory is a read-only backup copied from a working Raspberry Pi 3B+. The source device runs Raspbian 9 Stretch, Python 2.7.13, and Python 3.5.3.

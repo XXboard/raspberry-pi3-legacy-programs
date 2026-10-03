@@ -1,0 +1,13 @@
+[Unit]
+Description=Raspberry Pi 3 OLED status display
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStartPre=/sbin/modprobe i2c-dev
+ExecStart=/usr/bin/python3 /usr/local/lib/pi3-display/pi3_display.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
