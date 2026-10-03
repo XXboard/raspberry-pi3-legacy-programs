@@ -7,6 +7,7 @@ import datetime
 import json
 import os
 import socket
+import subprocess
 import time
 
 from PIL import Image, ImageDraw, ImageFont
@@ -87,6 +88,27 @@ def read_battery(bus):
     return value
 
 
+def unbcd(value):
+    return (value >> 4) * 10 + (value & 0x0F)
+
+
+def restore_time_from_rtc(bus):
+    """Use PCF8563 when its clock is newer than the system clock."""
+    try:
+        data = bus.read_i2c_block_data(0x51, 0x02, 7, force=True)
+    except TypeError:
+        data = bus.read_i2c_block_data(0x51, 0x02, 7)
+    rtc = datetime.datetime(2000 + unbcd(data[6] & 0xFF),
+                            unbcd(data[5] & 0x1F),
+                            unbcd(data[3] & 0x3F),
+                            unbcd(data[2] & 0x3F),
+                            unbcd(data[1] & 0x7F),
+                            unbcd(data[0] & 0x7F))
+    if (rtc - datetime.datetime.utcnow()).total_seconds() > 60:
+        subprocess.check_call(["date", "-u", "-s",
+                               rtc.strftime("%Y-%m-%d %H:%M:%S")])
+
+
 def update_battery(bus, state, now):
     raw = read_battery(bus)
     status = state.get("status", "discharging")
@@ -162,9 +184,13 @@ def frame(lines):
 def main():
     display = SSD1306()
     battery_bus = SMBus(I2C_BUS)
+    try:
+        restore_time_from_rtc(battery_bus)
+    except (IOError, OSError, ValueError, subprocess.CalledProcessError):
+        pass
     state = load_state()
     page = 0
-    next_page = 0
+    page_started = time.time()
     battery = state.get("percent", "--")
     charging = state.get("status") == "charging"
     try:
@@ -174,20 +200,20 @@ def main():
                 battery, charging = update_battery(battery_bus, state, now)
             except (IOError, ValueError):
                 pass
-            if now >= next_page:
-                current = datetime.datetime.now()
-                pages = [
-                    (current.strftime("TIME %H:%M:%S"),
-                     current.strftime("DATE %m-%d")),
-                    ("CPU  {0:.1f} C".format(cpu_temperature()),
-                     "FAN  AUTO"),
-                    ("BAT  {0}%".format(battery),
-                     "CHARGING" if charging else used_text(state, now)),
-                    ("IP ADDRESS", local_ip()),
-                ]
-                display.show(frame(pages[page]))
-                page = (page + 1) % len(pages)
-                next_page = now + PAGE_SECONDS
+            if now - page_started >= PAGE_SECONDS:
+                page = (page + 1) % 4
+                page_started = now
+            current = datetime.datetime.now()
+            pages = [
+                (current.strftime("TIME %H:%M:%S"),
+                 current.strftime("DATE %m-%d")),
+                ("CPU  {0:.1f} C".format(cpu_temperature()),
+                 "FAN  AUTO"),
+                ("BAT  {0}%".format(battery),
+                 "CHARGING" if charging else used_text(state, now)),
+                ("IP ADDRESS", local_ip()),
+            ]
+            display.show(frame(pages[page]))
             time.sleep(1)
     finally:
         battery_bus.close()
