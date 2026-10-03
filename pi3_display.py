@@ -150,9 +150,10 @@ def local_ip():
 def used_text(state, now):
     started = state.get("discharge_start")
     if started is None:
-        return "USED 00:00"
+        return "00 HOUR 00 MINUTS"
     minutes = int(max(0, now - started)) // 60
-    return "USED {0:02d}:{1:02d}".format(minutes // 60, minutes % 60)
+    return "{0:02d} HOUR {1:02d} MINUTS".format(minutes // 60,
+                                                 minutes % 60)
 
 
 def font(size):
