@@ -6,8 +6,13 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
-apt-get update
-apt-get install -y python3 python3-pil python3-smbus i2c-tools fonts-dejavu-core
+if ! python3 -c 'from PIL import Image; import smbus' >/dev/null 2>&1; then
+    echo "Installing missing Python OLED dependencies..."
+    apt-get update
+    apt-get install -y python3 python3-pil python3-smbus i2c-tools fonts-dejavu-core
+else
+    echo "OLED dependencies are already installed; skipping package download."
+fi
 install -d -m 0755 /usr/local/lib/pi3-display
 install -m 0755 ./pi3_display.py /usr/local/lib/pi3-display/pi3_display.py
 install -m 0644 ./pi3-display.service /etc/systemd/system/pi3-display.service
