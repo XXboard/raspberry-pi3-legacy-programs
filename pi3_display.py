@@ -190,6 +190,12 @@ def main():
     except (IOError, OSError, ValueError, subprocess.CalledProcessError):
         pass
     state = load_state()
+    now = time.time()
+    previous_update = state.get("updated")
+    discharge_start = state.get("discharge_start")
+    if (state.get("status") != "charging" and previous_update is not None
+            and discharge_start is not None and now - previous_update > 300):
+        state["discharge_start"] = discharge_start + (now - previous_update)
     page = 0
     page_started = time.time()
     battery = state.get("percent", "--")
